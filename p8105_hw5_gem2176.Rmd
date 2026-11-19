@@ -16,8 +16,8 @@ library(tidyverse)
 
 # Problem 2
 
-Creating a tidy data frame containing data from all participants, including the subject ID, arm, and observations over time
-```{r}
+#### Creating a tidy data frame containing data from all participants, including the subject ID, arm, and observations over time
+```{r, results = "hide"}
 full_df = 
   tibble(
     files = list.files("data/"),
@@ -46,12 +46,87 @@ tidy_df %>%
   facet_grid(~group)
 
 ```
+
 The plots highlight the change in outcome over time among the control and exposed group. The control group appears to be noisy, but fairly constant over the course of weeks one through eight. In the exposed group however, there is an upward trend over the course of weeks one through eight.
 
 ## Problem 3
 
+#### Fixing the design elements and generate 5000 data sets from the model 
+```{r}
+set.seed(1)
 
+#creating function
+t_test_sim = function(n = 30, mu = 0, sigma = 5) {
+  
+  sim_data = tibble(
+    x = rnorm(n, mean = mu, sd = sigma),
+  )
+  
+  sim_data |> 
+    summarize(
+      mu_hat = mean(x),
+      t_test = broom:: tidy(t.test(x)))
+}
+
+
+#generating 5000 data sets
+output = vector("list", 5000)
+
+for (i in 1:5000) {
+  output[[i]] = t_test_sim(30)
+}
+
+sim_results = bind_rows(output)
+
+
+#creating df for rows for 5000 iterations
+sim_results_df = 
+  expand_grid(
+    sample_size = 30,
+    iter = 1:5000
+  ) |> 
+  mutate(
+    estimate_df = map(sample_size, t_test_sim)
+  ) |> 
+  unnest(estimate_df)
+
+```
+
+#### Repeating for mu = 1, 2, 3, 4, 5, 6
+```{r}
+sim_results_df = 
+  expand_grid(
+    sample_size = 30, 
+    mu = 0:6,
+    iter = 1:5000
+  ) |> 
+  mutate(
+    estimate_df = map2(sample_size, mu, \(n, m) t_test_sim(n = n, mu = m))
+  ) |> 
+  unnest(estimate_df) 
+
+  
+```
+
+#### Making a plot showing the proportion of times the null was rejected (the power of the test) on the y axis and the true value of 𝜇on the x axis. 
+```{r}
+sim_results_df |> 
+  group_by(mu) |> 
+  summarize(power = ((sum(t_test$p.value < 0.05)))/5000) |> 
+  ggplot(aes(x= mu, y=power)) +
+  geom_point() +
+  labs(title = "Association between effect size and power") +
+  theme_minimal()
+```
+
+The relationship between effect size and power appears to be an aymptotic curve, increasing gradually and eventually hitting a plateu at 1.
+
+
+#### Plotting the average estimate of 𝜇̂ on the y axis and the true value of 𝜇on the x axis
 ```{r}
 
 ```
+
+
+
 
