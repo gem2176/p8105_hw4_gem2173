@@ -17,7 +17,7 @@ library(tidyverse)
 # Problem 2
 
 #### Creating a tidy data frame containing data from all participants, including the subject ID, arm, and observations over time
-```{r, results = "hide"}
+```{r, message = FALSE}
 full_df = 
   tibble(
     files = list.files("data/"),
@@ -49,7 +49,7 @@ tidy_df %>%
 
 The plots highlight the change in outcome over time among the control and exposed group. The control group appears to be noisy, but fairly constant over the course of weeks one through eight. In the exposed group however, there is an upward trend over the course of weeks one through eight.
 
-## Problem 3
+# Problem 3
 
 #### Fixing the design elements and generate 5000 data sets from the model 
 ```{r}
@@ -124,9 +124,30 @@ The relationship between effect size and power appears to be an aymptotic curve,
 
 #### Plotting the average estimate of 𝜇̂ on the y axis and the true value of 𝜇on the x axis
 ```{r}
-
+mean_mu = 
+sim_results_df |> 
+  group_by(mu) |> 
+  summarize(average_mu_hat = mean(mu_hat)) |> 
+  ggplot(aes(x= mu, y=average_mu_hat)) +
+  geom_point() +
+  labs(title = "Association betweeen estimated and true value of mu") +
+  theme_minimal()
 ```
 
 
+#### Plotting the average estimate of 𝜇̂ on the y axis and the true value of 𝜇on the x axis for only tests where the null is rejected 
+```{r}
+sim_results_df |> 
+  filter(t_test$p.value < 0.05) |> 
+  group_by(mu) |> 
+  summarize(average_mu_hat = mean(mu_hat)) |> 
+  ggplot(aes(x= mu, y=average_mu_hat)) +
+  geom_point() +
+  labs(title = "Association betweeen estimated and true value of mu
+for only tests for which the null is rejected") +
+  theme_minimal()
+```
+
+The sample average of mu hat across tests for which the null is rejected is not approximately equal to the true value of mu. However, as the true value of mu increases, the approximation becomes better. This is because more values get rejected when the true value of mu becomes more distant from the null hypothesis value of mu = 0. As a result, the sample of rejected is very similar to the whole pool of samples. However, when the true value is closer to the null hypothesis, fewer samples are rejected, and one ends up with a pool that is different from the full sample because it selects only the extreme cases. 
 
 
